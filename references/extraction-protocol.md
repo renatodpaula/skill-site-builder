@@ -1,8 +1,10 @@
-# Extraction Protocol — Design System via Firecrawl
+# Extraction Protocol — Design System via Referência
 
-## Workflow Completo
+## Cadeia de Ferramentas (Fallback)
 
-### Step 1: Scrape Inicial
+Tente cada nível em ordem. Pare no primeiro que produzir dados suficientes.
+
+### Nível 1 — Firecrawl (preferido)
 
 ```bash
 # Scrape padrão — markdown + screenshot
@@ -20,6 +22,51 @@ Adicione ao `.gitignore` se em um projeto:
 ```
 .firecrawl/
 ```
+
+### Nível 2 — Playwright Screenshot (se Firecrawl falhar ou retornar esparso)
+
+Use a skill `playwright-skill` para capturar screenshot da página:
+
+```
+/playwright-skill screenshot <url>
+```
+
+Com o screenshot disponível, Claude extrai tokens visualmente:
+- Identifique modo dark/light pela cor dominante do fundo
+- Cor do texto primário e secundário por contraste
+- Accent color pelo elemento de maior saliência (botão CTA, link ativo, highlight)
+- Família tipográfica aproximada pela forma dos glifos
+- Espaçamento estimado pelo ritmo visual entre elementos
+- 2–3 padrões de componente visíveis na tela
+
+Screenshot é especialmente útil para: gradientes complexos, glassmorphism, overlays, animações, efeitos que não aparecem no markdown.
+
+### Nível 3 — WebFetch HTML Bruto (se screenshot não disponível)
+
+```
+WebFetch("<url>")
+```
+
+Do HTML bruto, extraia:
+- Tags `<link>` com `fonts.googleapis.com` → nomes de fonte
+- Variáveis CSS `--color-`, `--bg-`, `--primary-` em `<style>`
+- Classes Tailwind no markup → inferir valores (ver seção "Sinais Indiretos")
+- Meta tags de theme-color
+- Inline styles em elementos hero/header
+
+### Nível 4 — Inferência Visual por Categoria (último recurso)
+
+Se nenhuma ferramenta retornar dados úteis:
+
+1. Informe o usuário: "Não consegui extrair o design system de [url] — [motivo]. Construindo baseado na categoria/tom do site."
+2. Infira pela categoria do produto:
+   - Fintech/B2B enterprise: austero, sans-serif, navy ou dark gray, conservador
+   - Gaming/entretenimento: vibrante, bold, dark com neon accent
+   - B2B SaaS: clean, medium contrast, azul ou slate
+   - Consumer app: colorido, arredondado, light-first
+   - Developer tool: mono-heavy, dark, minimal decoration
+   - Luxury/fashion: alta tipografia, muito espaço negativo, accent gold ou nude
+3. Construa uma interpretação e seja transparente com o usuário sobre o nível de inferência usado.
 
 ### Step 2: Leitura Incremental do Output
 
@@ -139,21 +186,25 @@ Se o usuário confirmar, inicie a construção. Se houver dúvidas ou ajustes, i
 
 ---
 
-## Fallbacks por Qualidade do Scrape
+## Qualidade do Output por Nível
 
-### Scrape Excelente (HTML/CSS completo preservado)
-→ Extraia valores diretos, construa com fidelidade ao sistema
+### Nível 1 — Firecrawl Excelente (HTML/CSS completo preservado)
+→ Extraia valores diretos. Construa com fidelidade ao sistema.
 
-### Scrape Bom (conteúdo + alguns estilos inline)
-→ Use valores diretos + inferências de class names + julgamento visual
+### Nível 1 — Firecrawl Bom (conteúdo + alguns estilos inline)
+→ Valores diretos + inferências de class names + julgamento visual.
 
-### Scrape Esparso (apenas texto, sem estilos)
-→ Infira da **categoria do produto**: fintech (austero, sans, navy/white), gaming (vibrante, bold, dark/neon), B2B SaaS (clean, medium contrast), consumer app (colorido, arredondado)
-→ Use o nome/logo do site como pista estética
-→ Construa uma interpretação e deixe claro ao usuário: "O scrape foi esparso — construí baseado na categoria/tom do site. Ajuste se quiser."
+### Nível 1 — Firecrawl Esparso (apenas texto, sem estilos)
+→ Tente Nível 2 (Playwright) antes de inferir. Se Playwright também falhar, use inferência por categoria e seja transparente.
 
-### Scrape Falhou
-→ Informe o usuário: "Não consegui scraper [url]. Pode fornecer um screenshot ou descrever o estilo que quer como referência?"
+### Nível 2 — Playwright Screenshot
+→ Extração visual direta. Confiável para cor, espaçamento, tipografia geral. Menos preciso para valores exatos de CSS.
+
+### Nível 3 — WebFetch HTML
+→ Útil para fontes e variáveis CSS. Fraco para valores computados e estilos dinâmicos.
+
+### Nível 4 — Inferência por Categoria
+→ Construa uma interpretação honesta. Informe o usuário e permita ajustes antes de avançar para o build.
 
 ---
 

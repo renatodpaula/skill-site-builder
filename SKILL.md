@@ -86,7 +86,7 @@ Para sites com múltiplas páginas distintas (marketing site com pricing separad
 
 ### Step 2: Extração de Tokens
 
-Leia `references/extraction-protocol.md` para o schema completo de extração.
+Leia `references/extraction-protocol.md` para o schema completo de extração, incluindo o fluxo de fallback de ferramenta se o Firecrawl falhar.
 
 Aplique o Design Token Extraction Protocol ao conteúdo scrapeado:
 
@@ -102,12 +102,64 @@ Aplique o Design Token Extraction Protocol ao conteúdo scrapeado:
 
 **Resumo estético**: 2–3 palavras (ex: "minimal enterprise dark", "playful consumer light", "technical documentation mono").
 
-### Step 3: Confirmação antes de construir
+### Step 3: Salvar DESIGN.md e confirmar com o usuário
 
-Após extração, apresente o resumo ao usuário antes de gerar código:
+Após extração, salve o design system como artefato persistente antes de gerar qualquer código:
+
+```bash
+# Salvar no diretório de trabalho atual
+cat > DESIGN.md << 'EOF'
+# Design System — [URL]
+
+Extraído em: [data]
+
+## Tema
+- Base: dark | light
+- Contraste: alto | médio | sutil
+
+## Paleta
+- bg: [valor]
+- surface: [valor]
+- surface-raised: [valor]
+- border: [valor]
+- text-primary: [valor]
+- text-secondary: [valor]
+- accent: [valor] ([nome da cor])
+
+## Tipografia
+- Display: [nome] [weights]
+- Body: [nome] [weights]
+- Mono: [nome ou "não detectado"]
+- H1: ~[px], letter-spacing: [tight/normal/wide]
+- Body: ~[px], line-height: [valor]
+
+## Espaçamento
+- Section padding-y: [px]
+- Section padding-x: [px]
+- Card padding: [px]
+- Max-width: [px]
+- Gap entre cards: [px]
+- Border-radius: [px]
+
+## Motion
+- Velocidade: fast | normal | slow
+- Estilo: snappy | smooth | theatrical | ausente
+- Signature: [animação notável ou "nenhuma"]
+
+## Componentes Distintos
+1. [nome] — [descrição]
+2. [nome] — [descrição]
+3. [nome] — [descrição]
+
+## Resumo Estético
+[2-3 palavras]
+EOF
+```
+
+Depois de salvar o DESIGN.md, apresente o resumo ao usuário para confirmação:
 
 ```
-Design system extraído de [URL]:
+Design system extraído de [URL] → salvo em DESIGN.md
 - Tema: dark / light
 - Cores: bg [valor], surface [valor], accent [valor]
 - Fontes: display [nome], body [nome], mono [nome se houver]
@@ -118,6 +170,8 @@ Design system extraído de [URL]:
 
 Construindo: [tipo de página] inspirado nesse sistema.
 ```
+
+O DESIGN.md é o checkpoint de validação — o usuário pode ajustar antes do build começar, e pode ser reutilizado em builds futuros do mesmo projeto sem re-scrape.
 
 ### Step 4: Build
 
